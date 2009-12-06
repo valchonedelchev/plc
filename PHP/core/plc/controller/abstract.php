@@ -7,8 +7,9 @@ abstract class PLC_Controller_Abstract
 		
 	}
 	
-	public function getNext() 
+	public function getNext($parts=array())
 	{
+		
 	}
 }
 
