@@ -1,6 +1,9 @@
 <?php
 
-abstract class Controller_Abstract {
-	public function getNext() {
+abstract class PLC_Controller_Abstract 
+{
+	public function getNext() 
+	{
 	}
 }
+

@@ -1,4 +1,4 @@
 <?php
 
-class Controller_Root extends Controller_Abstract {
+class PLC_Controller_Root extends PLC_Controller_Abstract {
 }
