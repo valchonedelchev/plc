@@ -2,6 +2,11 @@
 
 class PLC_Autoload
 {
+	/**
+	 * Autoload our classes
+	 * 
+	 * @param string $class
+	 */
 	public static function autoload($class)
 	{
 		if (!class_exists($class)) {
