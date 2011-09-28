@@ -1,0 +1,24 @@
+#!/usr/bin/env perl
+use Mojolicious::Lite;
+
+# Just for test
+use lib 'lib';
+
+# Prepare plugin
+plugin 'FileBrowser';
+
+# Global route add
+any '/' => sub { shift->render } => 'index';
+
+# Make app run
+app->start;
+
+__DATA__
+
+@@index.html.ep
+This is index.
+<ul>
+% for my $i (@{$self->ls}) {
+   <li><%= $i->{name}%> <%= scalar(localtime($i->{mtime}))%></li>
+% }
+</ul>
