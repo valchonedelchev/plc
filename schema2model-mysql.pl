@@ -107,7 +107,7 @@ sub get_code
     $o .= 'use base qw/Model::DBI/;' . EOL;
     $o .= 'our $VERSION = "0.01";' . EOL;
     $o .= $namespace . '->table("' . $table . '");' . EOL;
-    $o .= $namespace . '->columns(All => qw/' . join( " ", @fields ) . '/;' . EOL;
+    $o .= $namespace . '->columns(All => qw/' . join( " ", @fields ) . '/);' . EOL;
     $o .= '1; # End of ' . $namespace . EOL;
     $o .= EOL;
     $o .= '=pod' . EOL . EOL;
