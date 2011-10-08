@@ -63,7 +63,7 @@ my $dbh = DBI->connect( "dbi:mysql:" . $opt{database}, $opt{user}, $opt{pass} )
 
     foreach my $table (@tables) {
         my @fields = get_fields($table);
-        my $code   = get_code( undef, $opt{database}, $table, @fields );
+        my $code   = get_code( $opt{database}, $table, @fields );
         my $file   = 'Model/' . ucfirst( lc $table ) . '.pm';
 
         open my $mf, '>', $file
@@ -109,6 +109,11 @@ sub get_code
     $o .= $namespace . '->table("' . $table . '");' . EOL;
     $o .= $namespace . '->columns(All => qw/' . join( " ", @fields ) . '/;' . EOL;
     $o .= '1; # End of ' . $namespace . EOL;
+    $o .= EOL;
+    $o .= '=pod' . EOL . EOL;
+    $o .= get_create_definition($table);
+    $o .= EOL . EOL;
+	$o .= '=cut' . EOL . EOL;
 
     return $o;
 }
@@ -120,7 +125,7 @@ sub get_fields
     $sth->execute;
     my @cols = map { $_->[0] } @{ $sth->fetchall_arrayref };
     $sth->finish;
-    return \@cols;
+    return @cols;
 }
 
 sub get_all_tables
@@ -128,6 +133,16 @@ sub get_all_tables
     my $sth = $dbh->prepare( "show table status from " . $opt{database} );
     $sth->execute;
     return map { $_->{Name} } values %{ $sth->fetchall_hashref('Name') };
+}
+
+sub get_create_definition
+{
+    my $table = shift;
+    my $sth = $dbh->prepare("show create table $table");
+    $sth->execute;
+    my $row = $sth->fetchrow_arrayref;
+	$sth->finish;
+	return $row->[1];
 }
 
 sub usage
