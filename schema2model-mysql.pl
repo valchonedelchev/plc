@@ -10,13 +10,13 @@ use Getopt::Long;
 
 use constant EOL => "\n";
 
-my $VERSION = '0.02';
+my $VERSION = '0.03';
 
 # class-dbi generate
 GetOptions(
     \my %opt,  "user=s",      "pass=s", "database=s",
-    "table=s", "namespace=s", "help",   "version", 
-    "nobase"
+    "table=s", "namespace=s", "help",   "version",
+    "nobase",  "package=s",   "basename=s"
 );
 
 if ( $opt{help} or not keys %opt ) {
@@ -50,50 +50,48 @@ my $dbh = DBI->connect( "dbi:mysql:" . $opt{database}, $opt{user}, $opt{pass} )
         @tables = get_all_tables();
     }
 
-    if ( not -d 'Model' ) {
-        mkdir('Model') or die 'Failed to mkdir Model - $!';
-        print " Created directory Model/\n";
+    my $basename = $opt{basename} || 'DBI';
+    my $package  = $opt{package}  || 'Model';
+
+    $basename =~ s{\..*?$}{};    # remove file extension
+    my $pkgdir = $package;
+    $pkgdir =~ s{::}{/}g;
+
+    if ( not -d $pkgdir ) {
+        system( "mkdir", "-p", $pkgdir ) == 0 or die 'Failed to mkdir Model - $!';
+        print "\n Created directory $pkgdir/\n";
     }
 
     if ( not $opt{nobase} ) {
-        my $code = gen_dbi_base( $opt{user}, $opt{pass}, $opt{database} );
-        my $file = 'Model/DBI.pm';
-        open my $f, ">", $file or die "Failed to open file $file - $!";
-        print $f $code;
-        close $f;
-        print " Wrote $file\n";
+        my $code = gen_dbi_base( $opt{user}, $opt{pass}, $opt{database}, $package );
+        my $file = "$pkgdir/$basename.pm";
+        file_put_content( $file, $code );
     }
 
     foreach my $table (@tables) {
         my @fields = get_fields($table);
-        my $code   = get_code( $opt{database}, $table, @fields );
-        my $file   = 'Model/' . ucfirst( lc $table ) . '.pm';
-
-        open my $mf, '>', $file
-          or die "Failed to open file $file for writing - $!";
-        print $mf $code;
-        close $mf;
-
-        print " Wrote $file\n";
+        my $code   = get_code( $opt{database}, $table, \@fields, $package );
+        my $file   = $pkgdir . '/' . ucfirst( lc $table ) . '.pm';
+        file_put_content( $file, $code );
     }
 }
 $dbh->disconnect;
 
 sub gen_dbi_base
 {
-    my ( $username, $password, $database ) = @_;
-    my $namespace = 'Model::DBI';
+    my ( $username, $password, $database, $namespace ) = @_;
+
+    $namespace = 'Model::DBI' unless $namespace;
+    print "gen_dbi_base() namespace: $namespace\n";
 
     my $o = 'package ' . $namespace . ';' . EOL;
-    $o .= 'use base qw/Class::DBI/;' . EOL;
-    $o .=
-        $namespace
-      . '->connection("dbi:mysql:'
-      . $database . '", "'
-      . $username . '", "'
-      . $password
-      . '", { mysql_enable_utf8 => 1 } );'
-      . EOL;
+    $o .= 'use base qw/Class::DBI/;' . EOL . EOL;
+    $o .= 'our $VERSION = "0.1";' . EOL . EOL;
+    $o .= sprintf( '%s->connection(' . EOL, $namespace );
+    $o .= sprintf( '  "dbi:mysql:%s",' . EOL, $database );
+    $o .= sprintf( '  "%s",' . EOL, $username );
+    $o .= sprintf( '  "%s",' . EOL, $password );
+    $o .= sprintf( ' { mysql_enable_utf8 => 1 } );' . EOL . EOL );
     $o .= '1;' . EOL . EOL;
 
     return $o;
@@ -101,10 +99,14 @@ sub gen_dbi_base
 
 sub get_code
 {
-    my ( $database, $table, @fields ) = ( shift, shift, @_ );
+    my ( $database, $table, $fields, $namespace ) = @_;
 
-    my $namespace = 'Model';
+    my @fields = @$fields;
+
+    $namespace ||= 'Model';
     $namespace .= '::' . ucfirst( lc $table );
+
+    print "get_code() namespace: $namespace\n";
 
     my $o = 'package ' . $namespace . ';' . EOL;
     $o .= 'use base qw/Model::DBI/;' . EOL;
@@ -116,7 +118,7 @@ sub get_code
     $o .= '=pod' . EOL . EOL;
     $o .= get_create_definition($table);
     $o .= EOL . EOL;
-	$o .= '=cut' . EOL . EOL;
+    $o .= '=cut' . EOL . EOL;
 
     return $o;
 }
@@ -141,11 +143,21 @@ sub get_all_tables
 sub get_create_definition
 {
     my $table = shift;
-    my $sth = $dbh->prepare("show create table $table");
+    my $sth   = $dbh->prepare("show create table $table");
     $sth->execute;
     my $row = $sth->fetchrow_arrayref;
-	$sth->finish;
-	return $row->[1];
+    $sth->finish;
+    return $row->[1];
+}
+
+sub file_put_content
+{
+    my ( $file, $content ) = @_;
+    open my $mf, '>', $file
+      or die "Failed to open file $file for writing - $!";
+    print $mf $content;
+    close $mf;
+    print " Wrote $file\n";
 }
 
 sub usage
@@ -157,8 +169,11 @@ sub usage
     print '  -pass     - MySQL password' . EOL;
     print '  -database - MySQL database name' . EOL;
     print '  -table    - MySQL table ( or will generate for all tables)' . EOL;
-    print '  -nobase   - skip creation of Model/DBI.pm file used to establish connection with database.' . EOL;
+    print '  -nobase   - do not create connection class' . EOL;
     print '  -version  - print out this program version' . EOL;
     print '  -help     - print this help' . EOL;
+    print '  -package  - alternative package name (default is Model)' . EOL;
+    print '  -basename - alternative name for connection base class (default is DBI.pm)'
+      . EOL;
     exit;
 }
