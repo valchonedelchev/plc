@@ -37,6 +37,7 @@ if ( not $opt{pass} ) {
     system( '/bin/stty', '-echo' );
     chomp( $opt{pass} = <STDIN> );
     system( '/bin/stty', 'echo' );
+    print "\n";
 }
 
 my $dbh = DBI->connect( "dbi:mysql:" . $opt{database}, $opt{user}, $opt{pass} )
@@ -59,7 +60,7 @@ my $dbh = DBI->connect( "dbi:mysql:" . $opt{database}, $opt{user}, $opt{pass} )
 
     if ( not -d $pkgdir ) {
         system( "mkdir", "-p", $pkgdir ) == 0 or die 'Failed to mkdir Model - $!';
-        print "\n Created directory $pkgdir/\n";
+        print " Created $pkgdir/\n";
     }
 
     if ( not $opt{nobase} ) {
@@ -77,13 +78,11 @@ my $dbh = DBI->connect( "dbi:mysql:" . $opt{database}, $opt{user}, $opt{pass} )
 }
 $dbh->disconnect;
 
+# todo: add support for drivers?
 sub gen_dbi_base
 {
     my ( $username, $password, $database, $namespace ) = @_;
-
-    $namespace = 'Model::DBI' unless $namespace;
-    print "gen_dbi_base() namespace: $namespace\n";
-
+    $namespace ||= 'Model::DBI';
     my $o = 'package ' . $namespace . ';' . EOL;
     $o .= 'use base qw/Class::DBI/;' . EOL . EOL;
     $o .= 'our $VERSION = "0.1";' . EOL . EOL;
@@ -93,7 +92,6 @@ sub gen_dbi_base
     $o .= sprintf( '  "%s",' . EOL, $password );
     $o .= sprintf( ' { mysql_enable_utf8 => 1 } );' . EOL . EOL );
     $o .= '1;' . EOL . EOL;
-
     return $o;
 }
 
@@ -105,8 +103,6 @@ sub get_code
 
     $namespace ||= 'Model';
     $namespace .= '::' . ucfirst( lc $table );
-
-    print "get_code() namespace: $namespace\n";
 
     my $o = 'package ' . $namespace . ';' . EOL;
     $o .= 'use base qw/Model::DBI/;' . EOL;
@@ -157,7 +153,7 @@ sub file_put_content
       or die "Failed to open file $file for writing - $!";
     print $mf $content;
     close $mf;
-    print " Wrote $file\n";
+    print " Created $file\n";
 }
 
 sub usage
