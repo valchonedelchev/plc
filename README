@@ -1,3 +1,11 @@
+Class::DBI code generator - schema2model-mysql.pl
+
+  Helper to generate perl files from already existing tables in your mysql
+  database. I found it usefull when starting a project and have database and
+  schema ready i all i have to do is to use this script to create table 
+  gateways ready to use.
+
+-------------------------------------------------------------------------------
 PHP/Perl light CMS
 
 git push origin master
