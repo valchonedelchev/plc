@@ -10,12 +10,13 @@ use Getopt::Long;
 
 use constant EOL => "\n";
 
-my $VERSION = '0.01';
+my $VERSION = '0.02';
 
 # class-dbi generate
 GetOptions(
     \my %opt,  "user=s",      "pass=s", "database=s",
-    "table=s", "namespace=s", "help",   "version"
+    "table=s", "namespace=s", "help",   "version", 
+    "nobase"
 );
 
 if ( $opt{help} or not keys %opt ) {
@@ -53,13 +54,15 @@ my $dbh = DBI->connect( "dbi:mysql:" . $opt{database}, $opt{user}, $opt{pass} )
         mkdir('Model') or die 'Failed to mkdir Model - $!';
         print " Created directory Model/\n";
     }
-    my $code = gen_dbi_base( $opt{user}, $opt{pass}, $opt{database} );
-    my $file = 'Model/DBI.pm';
 
-    open my $f, ">", $file or die "Failed to open file $file - $!";
-    print $f $code;
-    close $f;
-    print " Wrote $file\n";
+    if ( not $opt{nobase} ) {
+        my $code = gen_dbi_base( $opt{user}, $opt{pass}, $opt{database} );
+        my $file = 'Model/DBI.pm';
+        open my $f, ">", $file or die "Failed to open file $file - $!";
+        print $f $code;
+        close $f;
+        print " Wrote $file\n";
+    }
 
     foreach my $table (@tables) {
         my @fields = get_fields($table);
@@ -154,6 +157,7 @@ sub usage
     print '  -pass     - MySQL password' . EOL;
     print '  -database - MySQL database name' . EOL;
     print '  -table    - MySQL table ( or will generate for all tables)' . EOL;
+    print '  -nobase   - skip creation of Model/DBI.pm file used to establish connection with database.' . EOL;
     print '  -version  - print out this program version' . EOL;
     print '  -help     - print this help' . EOL;
     exit;
