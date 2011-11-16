@@ -1,7 +1,15 @@
 #!/usr/bin/env perl
 ###############################################################################
-# Tool for generating Model from mysql schemas. Creates dir Model and put files
-# with table names inside. Also generates base class inside called Model/DBI.pm
+# Tool for generating Class::DBI packages from already existing database 
+# structure. The default username if not specified is root and if no password
+# argument it will ask you for database password. There is an option for 
+# package name you wigsh to prefix your classes.
+#
+# Author: Vulcho Nedelchev
+# Email: kumcho@vulcho.com
+# URL: 
+#   http://vulcho.com/perl/Misc/
+#   https://github.com/valchonedelchev/plc
 ###############################################################################
 use DBI;
 use strict;
