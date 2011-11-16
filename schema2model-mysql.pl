@@ -10,7 +10,7 @@ use Getopt::Long;
 
 use constant EOL => "\n";
 
-my $VERSION = '0.03';
+my $VERSION = '0.04';
 
 # class-dbi generate
 GetOptions(
@@ -101,15 +101,15 @@ sub get_code
 
     my @fields = @$fields;
 
-    $namespace ||= 'Model';
-    $namespace .= '::' . ucfirst( lc $table );
+    my $package = $namespace || 'Model';
+    $package .= '::' . ucfirst( lc $table );
 
-    my $o = 'package ' . $namespace . ';' . EOL;
-    $o .= 'use base qw/Model::DBI/;' . EOL;
+    my $o = 'package ' . $package . ';' . EOL;
+    $o .= 'use base qw/'.$namespace.'::DBI/;' . EOL;
     $o .= 'our $VERSION = "0.01";' . EOL;
-    $o .= $namespace . '->table("' . $table . '");' . EOL;
-    $o .= $namespace . '->columns(All => qw/' . join( " ", @fields ) . '/);' . EOL;
-    $o .= '1; # End of ' . $namespace . EOL;
+    $o .= $package . '->table("' . $table . '");' . EOL;
+    $o .= $package . '->columns(All => qw/' . join( " ", @fields ) . '/);' . EOL;
+    $o .= '1; # End of ' . $package . EOL;
     $o .= EOL;
     $o .= '=pod' . EOL . EOL;
     $o .= get_create_definition($table);
