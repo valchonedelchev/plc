@@ -1,13 +1,13 @@
 #!/usr/bin/env perl
 ###############################################################################
-# Tool for generating Class::DBI packages from already existing database 
+# Tool for generating Class::DBI packages from already existing database
 # structure. The default username if not specified is root and if no password
-# argument it will ask you for database password. There is an option for 
+# argument it will ask you for database password. There is an option for
 # package name you wigsh to prefix your classes.
 #
 # Author: Vulcho Nedelchev
 # Email: kumcho@vulcho.com
-# URL: 
+# URL:
 #   http://vulcho.com/perl/Misc/
 #   https://github.com/valchonedelchev/plc
 ###############################################################################
@@ -18,13 +18,12 @@ use Getopt::Long;
 
 use constant EOL => "\n";
 
-my $VERSION = '0.04';
+my $VERSION = '0.05';
 
 # class-dbi generate
 GetOptions(
-    \my %opt,  "user=s",      "pass=s", "database=s",
-    "table=s", "namespace=s", "help",   "version",
-    "nobase",  "package=s",   "basename=s"
+    \my %opt, "user=s",  "pass=s", "database=s", "table=s",    "namespace=s",
+    "help",   "version", "nobase", "package=s",  "basename=s", "abstract-search"
 );
 
 if ( $opt{help} or not keys %opt ) {
@@ -54,8 +53,7 @@ my $dbh = DBI->connect( "dbi:mysql:" . $opt{database}, $opt{user}, $opt{pass} )
     my @tables;
     if ( exists $opt{table} ) {
         @tables = ( $opt{table} );
-    }
-    else {
+    } else {
         @tables = get_all_tables();
     }
 
@@ -67,7 +65,8 @@ my $dbh = DBI->connect( "dbi:mysql:" . $opt{database}, $opt{user}, $opt{pass} )
     $pkgdir =~ s{::}{/}g;
 
     if ( not -d $pkgdir ) {
-        system( "mkdir", "-p", $pkgdir ) == 0 or die 'Failed to mkdir Model - $!';
+        system( "mkdir", "-p", $pkgdir ) == 0
+          or die 'Failed to mkdir Model - $!';
         print " Created $pkgdir/\n";
     }
 
@@ -79,7 +78,7 @@ my $dbh = DBI->connect( "dbi:mysql:" . $opt{database}, $opt{user}, $opt{pass} )
 
     foreach my $table (@tables) {
         my @fields = get_fields($table);
-        my $code   = get_code( $opt{database}, $table, \@fields, $package );
+        my $code   = get_code( $opt{database}, $table, \@fields, $package, $opt{'abstract-search'} );
         my $file   = $pkgdir . '/' . ucfirst( lc $table ) . '.pm';
         file_put_content( $file, $code );
     }
@@ -90,7 +89,7 @@ $dbh->disconnect;
 sub gen_dbi_base
 {
     my ( $username, $password, $database, $namespace ) = @_;
-    $namespace ||= 'Model::DBI';
+    $namespace = $namespace ? $namespace . '::DBI' : 'Model::DBI';
     my $o = 'package ' . $namespace . ';' . EOL;
     $o .= 'use base qw/Class::DBI/;' . EOL . EOL;
     $o .= 'our $VERSION = "0.1";' . EOL . EOL;
@@ -105,7 +104,7 @@ sub gen_dbi_base
 
 sub get_code
 {
-    my ( $database, $table, $fields, $namespace ) = @_;
+    my ( $database, $table, $fields, $namespace, $abstract_search ) = @_;
 
     my @fields = @$fields;
 
@@ -113,7 +112,8 @@ sub get_code
     $package .= '::' . ucfirst( lc $table );
 
     my $o = 'package ' . $package . ';' . EOL;
-    $o .= 'use base qw/'.$namespace.'::DBI/;' . EOL;
+    $o .= 'use base qw/' . $namespace . '::DBI/;' . EOL;
+    $o .= 'use Class::DBI::AbstractSearch;' . EOL if $abstract_search;
     $o .= 'our $VERSION = "0.01";' . EOL;
     $o .= $package . '->table("' . $table . '");' . EOL;
     $o .= $package . '->columns(All => qw/' . join( " ", @fields ) . '/);' . EOL;
@@ -169,15 +169,15 @@ sub usage
     my $message = shift;
     print $message . EOL;
     print "usage: $0 -user=root -pass=******* -database=blog" . EOL;
-    print "  -user     - MySQL username (default is root)" . EOL;
-    print '  -pass     - MySQL password' . EOL;
-    print '  -database - MySQL database name' . EOL;
-    print '  -table    - MySQL table ( or will generate for all tables)' . EOL;
-    print '  -nobase   - do not create connection class' . EOL;
-    print '  -version  - print out this program version' . EOL;
-    print '  -help     - print this help' . EOL;
-    print '  -package  - alternative package name (default is Model)' . EOL;
-    print '  -basename - alternative name for connection base class (default is DBI.pm)'
-      . EOL;
+    print "  -user            - MySQL username (default is root)" . EOL;
+    print '  -pass            - MySQL password' . EOL;
+    print '  -database        - MySQL database name' . EOL;
+    print '  -table           - MySQL table ( or will generate for all tables)' . EOL;
+    print '  -nobase          - do not create connection class' . EOL;
+    print '  -version         - print out this program version' . EOL;
+    print '  -help            - print this help' . EOL;
+    print '  -package         - alternative package name (default is Model)' . EOL;
+    print "  -abstract-search - add use Class::DBI::AbstractSearch to enable search_where()" . EOL;
+    print '  -basename        - alternative name for connection base class (default is DBI.pm)' . EOL;
     exit;
 }
