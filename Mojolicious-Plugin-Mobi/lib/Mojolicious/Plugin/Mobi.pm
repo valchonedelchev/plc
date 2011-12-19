@@ -1,16 +1,19 @@
 package Mojolicious::Plugin::Mobi;
 use Mojo::Base 'Mojolicious::Plugin';
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 sub register {
   my ($self, $app) = @_;
-  $app->helper(is_mobile => sub { $self->is_mobile(@_) });
+  $app->helper(
+    is_mobile => sub { $self->is_mobile(@_) }
+  );
+  $app->routes->add_condition( mobile => sub {
+    my ($r, $c) = @_;
+    return $c->is_mobile ? 1 : 0;
+  });
 }
 
-
-# Regex generated from:
-# http://detectmobilebrowsers.com/
 sub is_mobile {
   my ($self, $c) = @_;
   my $user_agent = $c->req->headers->user_agent || $ENV{HTTP_USER_AGENT} || "";
@@ -42,18 +45,29 @@ Mojolicious::Plugin::Mobi - Mojolicious Plugin
 
   # Mojolicious
   $self->plugin('Mobi');
-  if ($self->is_mobile()) {
-    $self->render(text=>"You are mobile.");
-  }
+  $self->routes->route("/")->over(mobile=>1)->to("Mobile#index");
+  # or
+  $self->render(text=>"You are mobile.") if $self->is_mobile;
 
-  # Mojolicious::Lite
+  # Mojolicious::Lite - not tested this way
   plugin 'Mobi';
-  is_mobile();
+  get '/' => sub { 
+    if (is_mobile()) {
+      redirect_to("http://m.example.com");
+    }
+  }
+  # or
+  get '/' => (mobile=>1) => sub {
+    my $self = shift;
+    $self->render(text=>"This is a mobile version of this site.");
+  };
 
 
 =head1 DESCRIPTION
 
-L<Mojolicious::Plugin::Mobi> is a L<Mojolicious> plugin.
+L<Mojolicious::Plugin::Mobi> is a L<Mojolicious> plugin. This module provides
+a helper method is_mobile and route condition to be more easy to use in your
+dispatcher.
 
 =head1 METHODS
 
