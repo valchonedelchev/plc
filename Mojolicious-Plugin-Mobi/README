@@ -1,1 +1,3 @@
 Mobile device detection
+ - provides helper method is_mobile()
+ - provides condition mobile=>1 for controller's method over 
