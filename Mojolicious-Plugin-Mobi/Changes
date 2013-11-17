@@ -1,5 +1,8 @@
 This file documents the revision history for Mojolicious-Plugin-Mobi.
 
+0.4     2013-11-17 00:00:00
+        - Tests requires Mojolicious 4.50
+
 0.3     2013-11-13 00:00:00
         - UserAgent fix in tests
 
